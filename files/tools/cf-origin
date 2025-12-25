@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# --- 1. Configuration: Read from JSON Params ---
+#
+# Parameters provided by standard JSON input (via natmap-update.sh)
+#
+
+. /usr/lib/natmap/common.sh
+. /usr/share/libubox/jshn.sh
+
+start() {
+    # Validate required variables (INIT_GLOBAL_VAR initialized them)
+    # Map tool_cf_* vars to local vars for script logic
+    local token="$tool_cf_token"
+    local zone_id="$tool_cf_zone_id"
+    local origin_rule_name="$tool_cf_rule_name"
+
+    if [ -z "$token" ] || [ -z "$zone_id" ] || [ -z "$origin_rule_name" ]; then
+        echo "Error: tool_cf_token, tool_cf_zone_id, and tool_cf_rule_name must be set via natmap configuration."
+        exit 1
+    fi
+
+    # Script logic starts here
+    # $1 (unused IP), $2 (port) passed from natmap-update.sh are now in $ip and $port global vars from eval
+    local new_port="$port"
+    
+    # ... (Rest of the script logic adapted to use variables) ...
+    # Re-implementing logic with new variables
+
+    echo "Info: Preparing to update rule '$origin_rule_name' port to: $new_port"
+
+    local CURL_RETRY='--connect-timeout 3 --retry 5'
+
+    echo "Step A: Fetching current Origin Rules from Cloudflare..."
+    local current_ruleset=$($CURL $CURL_RETRY --silent -L -X GET \
+        --url "https://api.cloudflare.com/client/v4/zones/${zone_id}/rulesets/phases/http_request_origin/entrypoint" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json")
+
+    if [ -z "$current_ruleset" ] || echo "$current_ruleset" | grep -q '"success":\s*false'; then
+        echo "Error: Failed to fetch ruleset from Cloudflare!"
+        echo "Response: $current_ruleset"
+        exit 1
+    fi
+    echo "Step A: Ruleset fetched successfully."
+
+    echo "Step B: Parsing JSON and modifying port..."
+    # Ensure jq is installed (it is a dependency)
+    local request_data=$(echo "$current_ruleset" | jq \
+        --argjson new_port "$new_port" \
+        --arg rule_name "$origin_rule_name" \
+        '
+        (.result.rules | to_entries | map(select(.value.description == $rule_name)) | .[0].key) as $target_index
+        | .result
+        | .rules[$target_index].action_parameters.origin.port = $new_port
+        | del(.last_updated)
+        '
+    )
+
+    if [ -z "$request_data" ]; then
+        echo "Error: Failed to find rule with description '$origin_rule_name' or jq failed."
+        exit 1
+    fi
+    echo "Step B: JSON data prepared."
+
+    echo "Step C: Submitting update to Cloudflare..."
+    local ruleset_id=$(echo "$current_ruleset" | jq -r '.result.id')
+
+    local update_result=$($CURL $CURL_RETRY --silent -L -X PUT \
+        --url "https://api.cloudflare.com/client/v4/zones/${zone_id}/rulesets/${ruleset_id}" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json" \
+        -d "$request_data")
+
+    echo "Step D: Verifying result..."
+    if echo "$update_result" | grep -q '"success":\s*true'; then
+        echo "Success! Cloudflare Origin Rule updated."
+    else
+        echo "Error: Update failed!"
+        echo "Response: $update_result"
+    fi
+}
+
+# All external parameters required
+ALL_PARAMS="ip port protocol inner_ip inner_port tokens tool_cf_token tool_cf_zone_id tool_cf_rule_name"
+eval "$(JSON_EXPORT "$1")"; shift
+
+# Initialize global variables
+INIT_GLOBAL_VAR tool_cf_token tool_cf_zone_id tool_cf_rule_name
+eval "$tokens"
+
+start "$@"

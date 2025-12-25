@@ -99,6 +99,7 @@ endef
 define Package/natmapt-client-script-transmission
 	$(call Package/natmapt-scripts/Default,client,Transmission)
 	DEPENDS+:=
+	DEFAULT:=y
 endef
 define Package/natmapt-client-script-transmission/install
 	$(call Package/natmapt-scripts/install/Default,$(1),client,Transmission)
@@ -107,6 +108,7 @@ endef
 define Package/natmapt-client-script-deluge
 	$(call Package/natmapt-scripts/Default,client,Deluge)
 	DEPENDS+:=
+	DEFAULT:=y
 endef
 define Package/natmapt-client-script-deluge/install
 	$(call Package/natmapt-scripts/install/Default,$(1),client,Deluge)
@@ -115,6 +117,7 @@ endef
 define Package/natmapt-notify-script-pushbullet
 	$(call Package/natmapt-scripts/Default,notify,Pushbullet)
 	DEPENDS+:=
+	DEFAULT:=y
 endef
 define Package/natmapt-notify-script-pushbullet/install
 	$(call Package/natmapt-scripts/install/Default,$(1),notify,Pushbullet)
@@ -123,6 +126,7 @@ endef
 define Package/natmapt-notify-script-pushover
 	$(call Package/natmapt-scripts/Default,notify,Pushover)
 	DEPENDS+:=
+	DEFAULT:=y
 endef
 define Package/natmapt-notify-script-pushover/install
 	$(call Package/natmapt-scripts/install/Default,$(1),notify,Pushover)
@@ -131,6 +135,7 @@ endef
 define Package/natmapt-notify-script-telegram
 	$(call Package/natmapt-scripts/Default,notify,Telegram)
 	DEPENDS+:=
+	DEFAULT:=y
 endef
 define Package/natmapt-notify-script-telegram/install
 	$(call Package/natmapt-scripts/install/Default,$(1),notify,Telegram)
@@ -142,3 +147,25 @@ $(eval $(call BuildPackage,natmapt-client-script-deluge))
 $(eval $(call BuildPackage,natmapt-notify-script-pushbullet))
 $(eval $(call BuildPackage,natmapt-notify-script-pushover))
 $(eval $(call BuildPackage,natmapt-notify-script-telegram))
+
+define Package/natmapt-tools-script-cf-origin
+	$(call Package/natmapt-scripts/Default,tools,Cloudflare Origin)
+	DEPENDS+:= +jq
+	DEFAULT:=y
+endef
+define Package/natmapt-tools-script-cf-origin/install
+	$(call Package/natmapt-scripts/install/Default,$(1),tools,cf-origin)
+endef
+
+$(eval $(call BuildPackage,natmapt-tools-script-cf-origin))
+
+define Package/natmapt-tools-script-cf-worker
+	$(call Package/natmapt-scripts/Default,tools,Cloudflare Worker)
+	DEPENDS+:= +curl
+	DEFAULT:=y
+endef
+define Package/natmapt-tools-script-cf-worker/install
+	$(call Package/natmapt-scripts/install/Default,$(1),tools,cf-worker)
+endef
+
+$(eval $(call BuildPackage,natmapt-tools-script-cf-worker))
