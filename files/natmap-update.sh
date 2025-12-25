@@ -73,6 +73,7 @@ if [ -n "$DDNS" ]; then
 	json_load "$DDNS_PARAM"
 	json_add_string https_svcparams "$_svcparams"
 	json_add_string ip "$ip"
+	json_add_int port "$port"
 	fallloop 5m 4 $DDNS "$(json_dump)" &
 fi
 if [ -n "$TOOL" ]; then
