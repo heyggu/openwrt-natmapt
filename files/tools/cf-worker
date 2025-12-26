@@ -12,10 +12,10 @@
 start() {
     local retry='--connect-timeout 3 --retry 5'
     
-    # Map tool_cf_worker_* vars to local vars
-    local url="${tool_cf_worker_url}"
-    local key="${tool_cf_worker_key}"
-    local service_name="${tool_cf_worker_service:-${comment:-natmap}}"
+    json_get_var url tool_cf_worker_url
+    json_get_var key tool_cf_worker_key
+    json_get_var service_name tool_cf_worker_service
+    [ -z "$service_name" ] && service_name="${comment:-natmap}"
 
     # Check required variables
     if [ -z "$url" ] || [ -z "$key" ]; then
@@ -65,7 +65,7 @@ ALL_PARAMS="comment ip port protocol inner_ip inner_port tokens tool_cf_worker_u
 eval "$(JSON_EXPORT "$1")"; shift
 
 # Initialize global variables
-INIT_GLOBAL_VAR tool_cf_worker_url tool_cf_worker_key tool_cf_worker_service
+INIT_GLOBAL_VAR
 eval "$tokens"
 
 start "$@"

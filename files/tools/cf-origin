@@ -9,11 +9,10 @@
 . /usr/share/libubox/jshn.sh
 
 start() {
-    # Validate required variables (INIT_GLOBAL_VAR initialized them)
-    # Map tool_cf_* vars to local vars for script logic
-    local token="$tool_cf_token"
-    local zone_id="$tool_cf_zone_id"
-    local origin_rule_name="$tool_cf_rule_name"
+    # Use native jshn function to retrieve variables from the loaded JSON
+    json_get_var token tool_cf_token
+    json_get_var zone_id tool_cf_zone_id
+    json_get_var origin_rule_name tool_cf_rule_name
 
     if [ -z "$token" ] || [ -z "$zone_id" ] || [ -z "$origin_rule_name" ]; then
         echo "Error: tool_cf_token, tool_cf_zone_id, and tool_cf_rule_name must be set via natmap configuration."
@@ -86,7 +85,7 @@ ALL_PARAMS="ip port protocol inner_ip inner_port tokens tool_cf_token tool_cf_zo
 eval "$(JSON_EXPORT "$1")"; shift
 
 # Initialize global variables
-INIT_GLOBAL_VAR tool_cf_token tool_cf_zone_id tool_cf_rule_name
+INIT_GLOBAL_VAR
 eval "$tokens"
 
 start "$@"
