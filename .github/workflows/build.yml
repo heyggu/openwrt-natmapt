@@ -48,7 +48,7 @@ jobs:
           mkdir -p sdk/package/luci-app-natmapt
           # Exclude .git and sdk directory to avoid recursion or huge copy
           rsync -av --exclude '.git' --exclude 'sdk' --exclude '.github' --exclude 'luci-app-natmapt-external' ./ sdk/package/natmapt/
-          cp -r luci-app-natmapt-external/* sdk/package/luci-app-natmapt/
+          cp -r luci-app-natmapt-external/. sdk/package/luci-app-natmapt/
 
       - name: Compile Package
         run: |
