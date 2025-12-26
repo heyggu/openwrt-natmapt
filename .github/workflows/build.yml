@@ -73,6 +73,7 @@ jobs:
           
           # Compile
           make package/natmapt/compile V=s -j$(nproc)
+          make package/luci-app-natmapt/compile V=s -j$(nproc) || make package/luci-app-natmapt/compile V=s -j1
 
       - name: Organize Artifacts
         run: |
