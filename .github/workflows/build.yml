@@ -61,6 +61,7 @@ jobs:
           # natmapt (main), luci-app-natmapt, and our new tools
           echo "CONFIG_PACKAGE_natmapt=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-natmapt=m" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-natmapt-zh-cn=m" >> .config
 
           make defconfig
           
@@ -73,6 +74,7 @@ jobs:
           mkdir -p artifacts
           find sdk/bin/packages -name "natmapt*.ipk" -exec cp {} artifacts/ \;
           find sdk/bin/packages -name "luci-app-natmapt*.ipk" -exec cp {} artifacts/ \;
+          find sdk/bin/packages -name "luci-i18n-natmapt-zh-cn*.ipk" -exec cp {} artifacts/ \;
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
