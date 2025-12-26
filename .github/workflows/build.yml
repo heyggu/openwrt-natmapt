@@ -1,0 +1,87 @@
+name: Build Package
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build for ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: mt7981_filogic
+            sdk_url: https://downloads.immortalwrt.org/releases/24.10.0/targets/mediatek/filogic/immortalwrt-sdk-24.10.0-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Checkout LuCI App
+        uses: actions/checkout@v4
+        with:
+          repository: heyggu/luci-app-natmapt
+          path: luci-app-natmapt-external
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev gawk git libssl-dev gettext zlib1g-dev file unzip python3 python3-distutils zstd
+
+      - name: Download and Setup SDK
+        run: |
+          wget -O sdk.archive ${{ matrix.sdk_url }}
+          mkdir sdk
+          if [[ "${{ matrix.sdk_url }}" == *".tar.zst" ]]; then
+            tar -I zstd -xf sdk.archive --strip-components=1 -C sdk
+          else
+            tar -xf sdk.archive --strip-components=1 -C sdk
+          fi
+          cd sdk
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Prepare Package
+        run: |
+          mkdir -p sdk/package/natmapt
+          mkdir -p sdk/package/luci-app-natmapt
+          # Exclude .git and sdk directory to avoid recursion or huge copy
+          rsync -av --exclude '.git' --exclude 'sdk' --exclude '.github' --exclude 'luci-app-natmapt-external' ./ sdk/package/natmapt/
+          cp -r luci-app-natmapt-external/* sdk/package/luci-app-natmapt/
+
+      - name: Compile Package
+        run: |
+          cd sdk
+          # Enable our package
+          # We need to select the luic-app and the tools scripts
+          # Since we set DEFAULT:=y in Makefile, selecting the main app might be enough or we explicitly select them
+          make defconfig
+          # Force select our packages
+          # natmapt (main), luci-app-natmapt, and our new tools
+          echo "CONFIG_PACKAGE_natmapt=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-natmapt=m" >> .config
+          echo "CONFIG_PACKAGE_natmapt-tools-script-cf-origin=m" >> .config
+          echo "CONFIG_PACKAGE_natmapt-tools-script-cf-worker=m" >> .config
+          echo "CONFIG_PACKAGE_natmapt-client-script-transmission=m" >> .config
+          echo "CONFIG_PACKAGE_natmapt-client-script-deluge=m" >> .config
+          echo "CONFIG_PACKAGE_natmapt-notify-script-pushbullet=m" >> .config
+          echo "CONFIG_PACKAGE_natmapt-notify-script-pushover=m" >> .config
+          echo "CONFIG_PACKAGE_natmapt-notify-script-telegram=m" >> .config
+          make defconfig
+          
+          # Compile
+          make package/natmapt/compile V=s -j$(nproc)
+
+      - name: Organize Artifacts
+        run: |
+          mkdir -p artifacts
+          find sdk/bin/packages -name "natmapt*.ipk" -exec cp {} artifacts/ \;
+          find sdk/bin/packages -name "luci-app-natmapt*.ipk" -exec cp {} artifacts/ \;
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: natmapt-${{ matrix.arch }}
+          path: artifacts/*.ipk
