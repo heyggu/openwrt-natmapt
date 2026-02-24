@@ -12,7 +12,7 @@ jobs:
       matrix:
         include:
           - arch: mt7981_filogic
-            sdk_url: https://downloads.immortalwrt.org/releases/24.10.0/targets/mediatek/filogic/immortalwrt-sdk-24.10.0-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+            sdk_url: https://mirrors.ustc.edu.cn/immortalwrt/releases/24.10.0/targets/mediatek/filogic/immortalwrt-sdk-24.10.0-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
 
     steps:
       - name: Checkout
