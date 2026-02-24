@@ -144,6 +144,15 @@ validate_section_natmap() {
 		'ddns_https_target:or(".", hostname):.' \
 		'ddns_https_svcparams:string:alpn="h2,http/1.1"' \
 		'ddns_https_priority:range(1, 65535):1' \
+		'tool_enable:bool:0' \
+		'tool_script:file' \
+		'tool_tokens:list(string)' \
+		'tool_cf_token:string' \
+		'tool_cf_zone_id:string' \
+		'tool_cf_rule_name:string' \
+		'tool_cf_worker_url:string' \
+		'tool_cf_worker_key:string' \
+		'tool_cf_worker_service:string' \
 		'custom_script:file' \
 		'log_stdout:bool:1' \
 		'log_stderr:bool:1'
@@ -256,6 +265,19 @@ natmap_instance() {
 			json_add_int https_priority "$ddns_https_priority"
 		}
 		procd_append_param env "DDNS_PARAM=$(json_dump)"
+	fi
+
+	if [ "$tool_enable" = 1 ]; then
+		procd_append_param env "TOOL=$tool_script"
+		json_init
+		json_add_string tokens "$tool_tokens"
+		[ -n "$tool_cf_token" ] && json_add_string tool_cf_token "$tool_cf_token"
+		[ -n "$tool_cf_zone_id" ] && json_add_string tool_cf_zone_id "$tool_cf_zone_id"
+		[ -n "$tool_cf_rule_name" ] && json_add_string tool_cf_rule_name "$tool_cf_rule_name"
+		[ -n "$tool_cf_worker_url" ] && json_add_string tool_cf_worker_url "$tool_cf_worker_url"
+		[ -n "$tool_cf_worker_key" ] && json_add_string tool_cf_worker_key "$tool_cf_worker_key"
+		[ -n "$tool_cf_worker_service" ] && json_add_string tool_cf_worker_service "$tool_cf_worker_service"
+		procd_append_param env "TOOL_PARAM=$(json_dump)"
 	fi
 
 	[ -n "${custom_script}" ] && procd_append_param env "CUSTOM_SCRIPT=${custom_script}"
@@ -413,10 +435,14 @@ launcher() {
 			local ddns_srv_target=${ddns_srv_target:-$ddns_srv}
 		fi
 	fi
+	## tool
+	if [ "$tool_enable" = 1 ]; then
+		[ -x "$tool_script" ] || { >&2 echo "$(basename $0): section $1 option tool_script '$tool_script' is empty or non-executable"; let error++; }
+	fi
 
 	# review
 	[ -n "$NATMAP_DEBUG" ] && {
-		local v ucivv="enable interval stun_cycle stun_server http_server fwmark_value comment udp_mode proto family bind_ifname ifname bind_ip lan_addr port port_pointer forward forward_mode natloopback forward_congestion forward_timeout forward_target forward_port refresh clt_script clt_scheme clt_web_port clt_username clt_password notify_enable notify_script notify_tokens notify_custom_domain notify_text ddns_enable ddns_script ddns_tokens ddns_a ddns_aaaa ddns_srv ddns_srv_serv ddns_srv_proto ddns_srv_target ddns_srv_priority ddns_srv_weight ddns_https ddns_https_target ddns_https_svcparams ddns_https_priority custom_script"
+		local v ucivv="enable interval stun_cycle stun_server http_server fwmark_value comment udp_mode proto family bind_ifname ifname bind_ip lan_addr port port_pointer forward forward_mode natloopback forward_congestion forward_timeout forward_target forward_port refresh clt_script clt_scheme clt_web_port clt_username clt_password notify_enable notify_script notify_tokens notify_custom_domain notify_text ddns_enable ddns_script ddns_tokens ddns_a ddns_aaaa ddns_srv ddns_srv_serv ddns_srv_proto ddns_srv_target ddns_srv_priority ddns_srv_weight ddns_https ddns_https_target ddns_https_svcparams ddns_https_priority tool_enable tool_script tool_tokens tool_cf_token tool_cf_zone_id tool_cf_rule_name tool_cf_worker_url tool_cf_worker_key tool_cf_worker_service custom_script"
 		for v in $ucivv; do eval "echo $1 $v=\'\$$v\'"; done # ash not support ${!v}
 	}
 	[ "$error" -gt 0 ] && return 1

@@ -1,0 +1,71 @@
+#!/bin/sh
+# Copyright (C) 2025 muink https://github.com/muink
+#
+# Port update notify script for Cloudflare Workers
+#
+# Parameters provided by standard JSON input (via natmap-update.sh)
+#
+
+. /usr/lib/natmap/common.sh
+. /usr/share/libubox/jshn.sh
+
+start() {
+    local retry='--connect-timeout 3 --retry 5'
+    
+    json_get_var url tool_cf_worker_url
+    json_get_var key tool_cf_worker_key
+    json_get_var service_name tool_cf_worker_service
+    [ -z "$service_name" ] && service_name="${comment:-natmap}"
+
+    # Check required variables
+    if [ -z "$url" ] || [ -z "$key" ]; then
+        echo "Cloudflare Notify Error: tool_cf_worker_url or tool_cf_worker_key not set" >&2
+        return 1
+    fi
+
+    # JSON Espace Function
+    json_safe() {
+        printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
+    }
+
+    # $ip, $port, $protocol etc are populated by eval "$(JSON_EXPORT "$1")"
+    local safe_service_name=$(json_safe "$service_name")
+    local safe_ip=$(json_safe "${ip:-0.0.0.0}")
+    local safe_proto=$(json_safe "${protocol:-tcp}")
+    local safe_inner_ip=$(json_safe "${inner_ip:-0.0.0.0}")
+    local safe_port="${port:-0}"
+    local safe_inner_port="${inner_port:-0}"
+
+    # Send Request
+    local response
+    response=$($CURL $retry -L -s -X POST \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $key" \
+        -d "{
+            \"service\": \"$safe_service_name\",
+            \"ip\": \"$safe_ip\",
+            \"port\": $safe_port,
+            \"protocol\": \"$safe_proto\",
+            \"inner_ip\": \"$safe_inner_ip\",
+            \"inner_port\": $safe_inner_port,
+            \"timestamp\": $(date +%s)
+        }" \
+        "$url")
+        
+    if [ $? -eq 0 ] && echo "$response" | grep -q "OK"; then
+        echo "Cloudflare Notify: Success for $service_name"
+    else
+        echo "Cloudflare Notify Error: $response" >&2
+        return 1
+    fi
+}
+
+# All external parameters required
+ALL_PARAMS="comment ip port protocol inner_ip inner_port tokens tool_cf_worker_url tool_cf_worker_key tool_cf_worker_service"
+eval "$(JSON_EXPORT "$1")"; shift
+
+# Initialize global variables
+INIT_GLOBAL_VAR
+eval "$tokens"
+
+start "$@"

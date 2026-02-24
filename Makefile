@@ -44,7 +44,7 @@ define Package/natmapt
   CATEGORY:=Network
   TITLE:=TCP/UDP port mapping tool for full cone NAT
   URL:=https://github.com/heiher/natmap
-  DEPENDS:=+curl +jsonfilter +bash
+  DEPENDS:=+curl +jq +jsonfilter +bash
 endef
 
 MAKE_FLAGS += REV_ID="$(PKG_VERSION)"
@@ -75,70 +75,18 @@ define Package/natmapt/install
 	$(INSTALL_DIR) $(1)/etc/natmap/client
 	$(INSTALL_BIN) ./files/client/qBittorrent $(1)/etc/natmap/client/
 	$(LN)          qBittorrent                $(1)/etc/natmap/client/qBittorrent-announce_port
+	$(INSTALL_BIN) ./files/client/Transmission $(1)/etc/natmap/client/
+	$(INSTALL_BIN) ./files/client/Deluge       $(1)/etc/natmap/client/
 	$(INSTALL_DIR) $(1)/etc/natmap/notify
-	$(INSTALL_BIN) ./files/notify/ntfy $(1)/etc/natmap/notify/
+	$(INSTALL_BIN) ./files/notify/ntfy       $(1)/etc/natmap/notify/
+	$(INSTALL_BIN) ./files/notify/Pushbullet $(1)/etc/natmap/notify/
+	$(INSTALL_BIN) ./files/notify/Pushover   $(1)/etc/natmap/notify/
+	$(INSTALL_BIN) ./files/notify/Telegram   $(1)/etc/natmap/notify/
 	$(INSTALL_DIR) $(1)/etc/natmap/ddns
 	$(INSTALL_BIN) ./files/ddns/Cloudflare $(1)/etc/natmap/ddns/
-endef
-
-define Package/natmapt-scripts/Default
-	SECTION:=net
-	CATEGORY:=Network
-	TITLE:=NATMap $(1) scripts ($(2))
-	DEPENDS:=+natmapt
-	PROVIDES:=@natmapt-$(1)-scripts @natmapt-$(1)-script-$(2)
-	VERSION:=$(SCRIPTS_VERSION)
-	PKGARCH:=all
-endef
-
-define Package/natmapt-scripts/install/Default
-	$(INSTALL_DIR) $(1)/etc/natmap/$(2)
-	$(INSTALL_BIN) ./files/$(2)/$(3) $(1)/etc/natmap/$(2)/
-endef
-
-define Package/natmapt-client-script-transmission
-	$(call Package/natmapt-scripts/Default,client,Transmission)
-	DEPENDS+:=
-endef
-define Package/natmapt-client-script-transmission/install
-	$(call Package/natmapt-scripts/install/Default,$(1),client,Transmission)
-endef
-
-define Package/natmapt-client-script-deluge
-	$(call Package/natmapt-scripts/Default,client,Deluge)
-	DEPENDS+:=
-endef
-define Package/natmapt-client-script-deluge/install
-	$(call Package/natmapt-scripts/install/Default,$(1),client,Deluge)
-endef
-
-define Package/natmapt-notify-script-pushbullet
-	$(call Package/natmapt-scripts/Default,notify,Pushbullet)
-	DEPENDS+:=
-endef
-define Package/natmapt-notify-script-pushbullet/install
-	$(call Package/natmapt-scripts/install/Default,$(1),notify,Pushbullet)
-endef
-
-define Package/natmapt-notify-script-pushover
-	$(call Package/natmapt-scripts/Default,notify,Pushover)
-	DEPENDS+:=
-endef
-define Package/natmapt-notify-script-pushover/install
-	$(call Package/natmapt-scripts/install/Default,$(1),notify,Pushover)
-endef
-
-define Package/natmapt-notify-script-telegram
-	$(call Package/natmapt-scripts/Default,notify,Telegram)
-	DEPENDS+:=
-endef
-define Package/natmapt-notify-script-telegram/install
-	$(call Package/natmapt-scripts/install/Default,$(1),notify,Telegram)
+	$(INSTALL_DIR) $(1)/etc/natmap/tools
+	$(INSTALL_BIN) ./files/tools/cf-origin $(1)/etc/natmap/tools/
+	$(INSTALL_BIN) ./files/tools/cf-worker $(1)/etc/natmap/tools/
 endef
 
 $(eval $(call BuildPackage,natmapt))
-$(eval $(call BuildPackage,natmapt-client-script-transmission))
-$(eval $(call BuildPackage,natmapt-client-script-deluge))
-$(eval $(call BuildPackage,natmapt-notify-script-pushbullet))
-$(eval $(call BuildPackage,natmapt-notify-script-pushover))
-$(eval $(call BuildPackage,natmapt-notify-script-telegram))

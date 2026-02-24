@@ -76,6 +76,18 @@ if [ -n "$DDNS" ]; then
 	json_add_int port "$port"
 	fallloop 5m 4 $DDNS "$(json_dump)" &
 fi
+if [ -n "$TOOL" ]; then
+	json_init
+	json_load "$TOOL_PARAM"
+	json_add_string comment "$COMMENT"
+	json_add_string ip "$ip"
+	json_add_int port "$port"
+	json_add_string ip4p "$ip4p"
+	json_add_int inner_port "$inner_port"
+	json_add_string protocol "$protocol"
+	json_add_string inner_ip "$inner_ip"
+	fallloop 5m 4 $TOOL "$(json_dump)" &
+fi
 
 [ -n "${CUSTOM_SCRIPT}" ] && {
 	export -n CUSTOM_SCRIPT
