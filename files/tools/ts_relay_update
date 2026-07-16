@@ -1,0 +1,15 @@
+#!/bin/sh
+
+ARG1="$1"
+
+if echo "$ARG1" | grep -q "^{"; then
+    PUBLIC_IP=$(jsonfilter -s "$ARG1" -e '@.ip')
+    PUBLIC_PORT=$(jsonfilter -s "$ARG1" -e '@.port')
+else
+    PUBLIC_IP="$1"
+    PUBLIC_PORT="$2"
+fi
+
+tailscale set --relay-server-static-endpoints="${PUBLIC_IP}:${PUBLIC_PORT}"
+
+logger -t natmap-tailscale "Tailscale Peer Relay endpoint successfully updated to ${PUBLIC_IP}:${PUBLIC_PORT}"
