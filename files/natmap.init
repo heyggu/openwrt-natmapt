@@ -478,6 +478,12 @@ service_triggers() {
 
 start_service() {
 	local sid="$1"
+	if [ -z "$DEF_WAN$DEF_WAN6" ]; then
+		>&2 echo "$(basename $0): default WAN not detected. service startup will be delayed."
+		sleep $(uci -q get $NAME.@$GLOBALSECTION[0].boot_delay || echo 0)
+		network_flush_cache
+		define_nic
+	fi
 
 	config_foreach validate_section_global "$GLOBALSECTION" define_global || return $?
 	[ "${GLOBAL_enable:=0}" == "0" ] && return 1
