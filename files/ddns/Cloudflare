@@ -39,15 +39,24 @@ start() {
 	[ -z "$records" -o -n "$(grep -E "\"success\":\s*false" <<< "$records")" ] && return 1
 
 	local the_record
+	local proxied_state
 
 	if [ -n "$host" ]; then
 		the_record="$(jsonfilter -s "$records" -qe '@.result[*]'|grep "\"type\": \"${hostype}\""|grep "\"name\": \"${host}\"")"
+		proxied_state="$(jsonfilter -s "$the_record" -qe '@.proxied')"
+		if [ -n "$PROXIED" ]; then
+				case "$PROXIED" in
+					1|true|yes|on) proxied_state=true ;;
+					*) proxied_state=false ;;
+				esac
+		fi
+		 [ "$proxied_state" != "true" ] && proxied_state=false
 		json_init
 		json_add_string type "${hostype}"
 		json_add_string name "${host}"
 		json_add_string content "${ip}"
 		json_add_int ttl 1
-		json_add_boolean proxied 0
+		json_add_boolean proxied $([ "$proxied_state" = "true" ] && echo 1 || echo 0)
 		http_request "$(json_dump)" "$(jsonfilter -s "$the_record" -qe '@.id')"
 	fi
 
