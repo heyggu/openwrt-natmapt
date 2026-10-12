@@ -88,6 +88,7 @@ define Package/natmapt/install
 	$(INSTALL_DIR) $(1)/etc/natmap/tools
 	$(INSTALL_BIN) ./files/tools/cf-origin $(1)/etc/natmap/tools/
 	$(INSTALL_BIN) ./files/tools/cf-worker $(1)/etc/natmap/tools/
+	$(INSTALL_BIN) ./files/tools/ts_relay_update $(1)/etc/natmap/tools/
 endef
 
 $(eval $(call BuildPackage,natmapt))
